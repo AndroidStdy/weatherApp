@@ -14,8 +14,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.get
 import com.google.android.gms.location.LocationServices
 import fastcampus.part2.weatherapp.databinding.ActivityMainBinding
+import fastcampus.part2.weatherapp.databinding.ItemForecastBinding
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -96,7 +98,9 @@ class MainActivity : AppCompatActivity() {
 
             val baseDateTime = BaseDateTime.getBaseDateTime()
             val converter = GeoPointConverter()
-            val point = converter.convert(lat = it.latitude, lon = it.longitude) // lat: 위도, lon: 경도
+            val point = converter.convert(lat = 37.5017, lon = 127.0178)
+            Log.e("convert", "$point")
+            //val point = converter.convert(lat = it.latitude, lon = it.longitude) // lat: 위도, lon: 경도
 
             service.getVillageForecast(
                 serviceKey = "fbK2g297uMEM8V6tRh8OrEcJYGYvS2aK/hLSkVSySexCD0yEVarZgDG7Li6ZbrOy1Wa++Irb+dZHjwnpnSDHBA==",
@@ -151,6 +155,24 @@ class MainActivity : AppCompatActivity() {
                     binding.tvTemperature.text = getString(R.string.temperature_text,currentForecast.temperature)
                     binding.tvSky.text = currentForecast.weather
                     binding.tvPrecipitation.text = getString(R.string.precipitation_text, currentForecast.precipitation)
+
+                    binding.childForecastLayout.apply {
+
+                        list.forEachIndexed{ index, forecast ->
+                            if (index == 0){ return@forEachIndexed }
+
+                            val itemView = ItemForecastBinding.inflate(layoutInflater)
+
+                            itemView.tvTime.text = forecast.forecastTime
+                            itemView.tvWeather.text = forecast.weather
+                            itemView.tvTemperature.text =
+                                getString(R.string.temperature_text, forecast.temperature)
+
+                            addView(itemView.root)
+
+                        }
+
+                    }
 
                     Log.e("Forecast", forecastDateTimeMap.toString())
                 }
