@@ -1,0 +1,90 @@
+Index: app/src/main/java/fastcampus/part2/weatherapp/BaseDateTime.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package fastcampus.part2.weatherapp\n\nimport java.time.LocalDateTime\nimport java.time.LocalTime\n\ndata class BaseDateTime(\n    val baseDate: String, val baseTime: String\n) {\n\n    companion object {\n\n        fun getBaseDateTime(): BaseDateTime {\n            var dateTime = LocalDateTime.now() // 시스템 시\n\n            val baseTime = when (dateTime.toLocalTime()) {\n                in LocalTime.of(0, 0)..LocalTime.of(2, 39) -> {\n                    dateTime = dateTime.minusDays(1) // 2시30분 이전일 경우, 전 날 로드 시간을 불러오기 위해\n                    \"2300\"\n                }\n                in LocalTime.of(2, 30)..LocalTime.of(5, 30) -> \"0200\"\n                in LocalTime.of(5, 30)..LocalTime.of(8, 30) -> \"0500\"\n                in LocalTime.of(11, 30)..LocalTime.of(14, 30) -> \"0800\"\n                in LocalTime.of(14, 30)..LocalTime.of(17, 30) -> \"1100\"\n                in LocalTime.of(17, 30)..LocalTime.of(20, 30) -> \"1400\"\n                in LocalTime.of(20, 30)..LocalTime.of(23, 30) -> \"2000\"\n                else -> \"2300\"\n\n            }\n\n            val baseDate = String.format(\"%04d%02d%02d\", dateTime.year,dateTime.monthValue, dateTime.dayOfMonth)\n            return BaseDateTime(baseDate, baseTime)\n        }\n\n\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/fastcampus/part2/weatherapp/BaseDateTime.kt b/app/src/main/java/fastcampus/part2/weatherapp/BaseDateTime.kt
+--- a/app/src/main/java/fastcampus/part2/weatherapp/BaseDateTime.kt	
++++ b/app/src/main/java/fastcampus/part2/weatherapp/BaseDateTime.kt	
+@@ -13,21 +13,28 @@
+             var dateTime = LocalDateTime.now() // 시스템 시
+ 
+             val baseTime = when (dateTime.toLocalTime()) {
+-                in LocalTime.of(0, 0)..LocalTime.of(2, 39) -> {
++                in LocalTime.of(0, 0)..LocalTime.of(2, 30) -> {
+                     dateTime = dateTime.minusDays(1) // 2시30분 이전일 경우, 전 날 로드 시간을 불러오기 위해
+                     "2300"
+                 }
++
+                 in LocalTime.of(2, 30)..LocalTime.of(5, 30) -> "0200"
+                 in LocalTime.of(5, 30)..LocalTime.of(8, 30) -> "0500"
+-                in LocalTime.of(11, 30)..LocalTime.of(14, 30) -> "0800"
+-                in LocalTime.of(14, 30)..LocalTime.of(17, 30) -> "1100"
+-                in LocalTime.of(17, 30)..LocalTime.of(20, 30) -> "1400"
++                in LocalTime.of(8, 30)..LocalTime.of(11, 30) -> "0800"
++                in LocalTime.of(11, 30)..LocalTime.of(14, 30) -> "1100"
++                in LocalTime.of(14, 30)..LocalTime.of(17, 30) -> "1400"
++                in LocalTime.of(17, 30)..LocalTime.of(20, 30) -> "1700"
+                 in LocalTime.of(20, 30)..LocalTime.of(23, 30) -> "2000"
+                 else -> "2300"
+ 
+             }
+ 
+-            val baseDate = String.format("%04d%02d%02d", dateTime.year,dateTime.monthValue, dateTime.dayOfMonth)
++            val baseDate = String.format(
++                "%04d%02d%02d",
++                dateTime.year,
++                dateTime.monthValue,
++                dateTime.dayOfMonth
++            )
+             return BaseDateTime(baseDate, baseTime)
+         }
+ 
+Index: app/src/main/java/fastcampus/part2/weatherapp/WeatherEntity.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package fastcampus.part2.weatherapp\n\nimport com.google.gson.annotations.SerializedName\n\ndata class WeatherEntity(\n    @SerializedName(\"response\")\n    val response: WeatherResponse\n\n)\n\ndata class WeatherResponse(\n    @SerializedName(\"header\")\n    val header: WeatherHeader,\n    @SerializedName(\"body\")\n    val body: WeatherBody,\n)\n\ndata class WeatherHeader(\n    @SerializedName(\"resultCode\")\n    val resultCode: String,\n    @SerializedName(\"resultMsg\")\n    val resultMessage: String\n\n)\n\ndata class WeatherBody(\n\n    @SerializedName(\"items\")\n    val items: ForecastEntityList\n\n)\n\ndata class ForecastEntityList(\n\n    @SerializedName(\"item\")\n    val forecastEntities: List<ForecastEntity>\n)\n\ndata class ForecastEntity(\n    @SerializedName(\"baseData\")\n    val baseData: String,\n    @SerializedName(\"baseTime\")\n    val baseTime: String,\n    @SerializedName(\"category\")\n    val category: Category?,\n    @SerializedName(\"fcstDate\")\n    val forecastDate: String,\n    @SerializedName(\"fcstTime\")\n    val forecastTime: String,\n    @SerializedName(\"fcstValue\")\n    val forecastValue: String,\n    @SerializedName(\"nx\")\n    val nx: Int,\n    @SerializedName(\"ny\")\n    val ny: Int,\n)
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/fastcampus/part2/weatherapp/WeatherEntity.kt b/app/src/main/java/fastcampus/part2/weatherapp/WeatherEntity.kt
+--- a/app/src/main/java/fastcampus/part2/weatherapp/WeatherEntity.kt	
++++ b/app/src/main/java/fastcampus/part2/weatherapp/WeatherEntity.kt	
+@@ -37,8 +37,8 @@
+ )
+ 
+ data class ForecastEntity(
+-    @SerializedName("baseData")
+-    val baseData: String,
++    @SerializedName("baseDate")
++    val baseDate: String,
+     @SerializedName("baseTime")
+     val baseTime: String,
+     @SerializedName("category")
+Index: .idea/deploymentTargetSelector.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"deploymentTargetSelector\">\n    <selectionStates>\n      <SelectionState runConfigName=\"app\">\n        <option name=\"selectionMode\" value=\"DROPDOWN\" />\n      </SelectionState>\n    </selectionStates>\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/deploymentTargetSelector.xml b/.idea/deploymentTargetSelector.xml
+--- a/.idea/deploymentTargetSelector.xml	
++++ b/.idea/deploymentTargetSelector.xml	
+@@ -4,6 +4,14 @@
+     <selectionStates>
+       <SelectionState runConfigName="app">
+         <option name="selectionMode" value="DROPDOWN" />
++        <DropdownSelection timestamp="2024-08-03T10:15:19.035850Z">
++          <Target type="DEFAULT_BOOT">
++            <handle>
++              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/yonghun/.android/avd/Medium_Phone_API_VanillaIceCream.avd" />
++            </handle>
++          </Target>
++        </DropdownSelection>
++        <DialogSelection />
+       </SelectionState>
+     </selectionStates>
+   </component>

@@ -1,0 +1,269 @@
+Index: app/src/main/java/fastcampus/part2/weatherapp/MainActivity.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package fastcampus.part2.weatherapp\n\nimport android.Manifest\nimport android.os.Bundle\nimport android.util.Log\nimport androidx.activity.enableEdgeToEdge\nimport androidx.activity.result.contract.ActivityResultContracts\nimport androidx.appcompat.app.AppCompatActivity\nimport androidx.core.view.ViewCompat\nimport androidx.core.view.WindowInsetsCompat\nimport retrofit2.Call\nimport retrofit2.Callback\nimport retrofit2.Response\nimport retrofit2.Retrofit\nimport retrofit2.converter.gson.GsonConverterFactory\n\nclass MainActivity : AppCompatActivity() {\n    val locationPermissionRequest = registerForActivityResult(\n        ActivityResultContracts.RequestMultiplePermissions()\n    ) { permissions ->\n        when {\n            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {\n                // Only approximate location access granted.\n            } else -> {\n            // No location access granted.\n        }\n        }\n    }\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        enableEdgeToEdge()\n        setContentView(R.layout.activity_main)\n\n\n        locationPermissionRequest.launch(arrayOf( //권한 요청\n            Manifest.permission.ACCESS_COARSE_LOCATION))\n\n        val retrofit = Retrofit.Builder()\n            .baseUrl(\"http://apis.data.go.kr/\")\n            .addConverterFactory(GsonConverterFactory.create())\n            .build()\n\n        val service = retrofit.create(WeatherService::class.java)\n\n        val baseDateTime = BaseDateTime.getBaseDateTime()\n        val converter = GeoPointConverter()\n        val point = converter.convert(lat = 37.5532, lon = 127.1906) // lat: 위도, lot: 경도\n\n        service.getVillageForecast(\n            serviceKey = \"fbK2g297uMEM8V6tRh8OrEcJYGYvS2aK/hLSkVSySexCD0yEVarZgDG7Li6ZbrOy1Wa++Irb+dZHjwnpnSDHBA==\",\n            baseDate = baseDateTime.baseDate,\n            baseTime = baseDateTime.baseTime,\n            nx = point.nx,\n            ny = point.ny\n        ).enqueue(object : Callback<WeatherEntity> {\n            override fun onResponse(call: Call<WeatherEntity>, response: Response<WeatherEntity>) {\n\n                // todo if(response.isSuccessful) 예외처리\n\n                val forecastDateTimeMap = mutableMapOf<String, Forecast>()\n                val forecastList =\n                    response.body()?.response?.body?.items?.forecastEntities.orEmpty()\n\n                for (forecast in forecastList) {\n\n                    if (forecastDateTimeMap[\"${forecast.forecastDate}/${forecast.forecastTime}\"] == null) {\n                        forecastDateTimeMap[\"${forecast.forecastDate}/${forecast.forecastTime}\"] =\n                            Forecast(\n                                forecastDate = forecast.forecastDate,\n                                forecastTime = forecast.forecastTime\n                            )\n                    }\n                    forecastDateTimeMap[\"${forecast.forecastDate}/${forecast.forecastTime}\"]?.apply {\n\n                        when (forecast.category) {\n                            Category.POP -> precipitation = forecast.forecastValue.toInt()\n                            Category.PTY -> precipitationType = transformRainType(forecast)\n                            Category.SKY -> sky = transformSky(forecast)\n                            Category.TMP -> temperature = forecast.forecastValue.toDouble()\n                            else -> {}\n\n                        }\n                    }\n\n                }\n                Log.e(\"Forecast\", forecastDateTimeMap.toString())\n\n            }\n\n            override fun onFailure(call: Call<WeatherEntity>, t: Throwable) {\n                t.printStackTrace()\n            }\n\n        })\n\n    }\n\n    private fun transformRainType(forecast: ForecastEntity): String {\n        return when (forecast.forecastValue.toInt()) {\n            0 -> \"없음\"\n            1 -> \"비\"\n            2 -> \"비/눈\"\n            3 -> \"눈\"\n            4 -> \"소나기\"\n            else -> \"\"\n        }\n    }\n\n    private fun transformSky(forecast: ForecastEntity): String {\n        return when (forecast.forecastValue.toInt()) {\n            1 -> \"맑음\"\n            3 -> \"구름많음\"\n            4 -> \"흐림\"\n            else -> \"\"\n        }\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/fastcampus/part2/weatherapp/MainActivity.kt b/app/src/main/java/fastcampus/part2/weatherapp/MainActivity.kt
+--- a/app/src/main/java/fastcampus/part2/weatherapp/MainActivity.kt	
++++ b/app/src/main/java/fastcampus/part2/weatherapp/MainActivity.kt	
+@@ -1,13 +1,20 @@
+ package fastcampus.part2.weatherapp
+ 
+ import android.Manifest
++import android.content.Intent
++import android.content.pm.PackageManager
++import android.net.Uri
+ import android.os.Bundle
++import android.provider.Settings
+ import android.util.Log
++import android.widget.Toast
+ import androidx.activity.enableEdgeToEdge
+ import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.appcompat.app.AppCompatActivity
++import androidx.core.app.ActivityCompat
+ import androidx.core.view.ViewCompat
+ import androidx.core.view.WindowInsetsCompat
++import com.google.android.gms.location.LocationServices
+ import retrofit2.Call
+ import retrofit2.Callback
+ import retrofit2.Response
+@@ -20,10 +27,17 @@
+     ) { permissions ->
+         when {
+             permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+-                // Only approximate location access granted.
+-            } else -> {
+-            // No location access granted.
+-        }
++                updateLocation()
++            }
++
++            else -> {
++                Toast.makeText(this, "위치 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
++                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
++                    data = Uri.fromParts("package", packageName, null)
++                }
++                startActivity(intent)
++                finish()
++            }
+         }
+     }
+ 
+@@ -33,86 +47,108 @@
+         setContentView(R.layout.activity_main)
+ 
+ 
+-        locationPermissionRequest.launch(arrayOf( //권한 요청
+-            Manifest.permission.ACCESS_COARSE_LOCATION))
++        locationPermissionRequest.launch(
++            arrayOf(
++                Manifest.permission.ACCESS_COARSE_LOCATION
++            )
++        )
++
++    }
++
++    private fun transformRainType(forecast: ForecastEntity): String {
++        return when (forecast.forecastValue.toInt()) {
++            0 -> "없음"
++            1 -> "비"
++            2 -> "비/눈"
++            3 -> "눈"
++            4 -> "소나기"
++            else -> ""
++        }
++    }
++
++    private fun transformSky(forecast: ForecastEntity): String {
++        return when (forecast.forecastValue.toInt()) {
++            1 -> "맑음"
++            3 -> "구름많음"
++            4 -> "흐림"
++            else -> ""
++        }
++    }
++
++    private fun updateLocation() {
++        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
++
++        if (ActivityCompat.checkSelfPermission(
++                this,
++                Manifest.permission.ACCESS_COARSE_LOCATION
++            ) != PackageManager.PERMISSION_GRANTED
++        ) {
++            // 권한을 새로 요청
++            locationPermissionRequest.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION))
++            return
++        }
++        fusedLocationClient.lastLocation.addOnSuccessListener {
+ 
+-        val retrofit = Retrofit.Builder()
+-            .baseUrl("http://apis.data.go.kr/")
+-            .addConverterFactory(GsonConverterFactory.create())
+-            .build()
++            val retrofit = Retrofit.Builder()
++                .baseUrl("http://apis.data.go.kr/")
++                .addConverterFactory(GsonConverterFactory.create())
++                .build()
+ 
+-        val service = retrofit.create(WeatherService::class.java)
++            val service = retrofit.create(WeatherService::class.java)
+ 
+-        val baseDateTime = BaseDateTime.getBaseDateTime()
+-        val converter = GeoPointConverter()
+-        val point = converter.convert(lat = 37.5532, lon = 127.1906) // lat: 위도, lot: 경도
++            val baseDateTime = BaseDateTime.getBaseDateTime()
++            val converter = GeoPointConverter()
++            val point = converter.convert(lat = it.latitude, lon = it.longitude) // lat: 위도, lot: 경도
+ 
+-        service.getVillageForecast(
+-            serviceKey = "fbK2g297uMEM8V6tRh8OrEcJYGYvS2aK/hLSkVSySexCD0yEVarZgDG7Li6ZbrOy1Wa++Irb+dZHjwnpnSDHBA==",
+-            baseDate = baseDateTime.baseDate,
+-            baseTime = baseDateTime.baseTime,
+-            nx = point.nx,
+-            ny = point.ny
+-        ).enqueue(object : Callback<WeatherEntity> {
+-            override fun onResponse(call: Call<WeatherEntity>, response: Response<WeatherEntity>) {
+-
+-                // todo if(response.isSuccessful) 예외처리
+-
+-                val forecastDateTimeMap = mutableMapOf<String, Forecast>()
+-                val forecastList =
+-                    response.body()?.response?.body?.items?.forecastEntities.orEmpty()
++            service.getVillageForecast(
++                serviceKey = "fbK2g297uMEM8V6tRh8OrEcJYGYvS2aK/hLSkVSySexCD0yEVarZgDG7Li6ZbrOy1Wa++Irb+dZHjwnpnSDHBA==",
++                baseDate = baseDateTime.baseDate,
++                baseTime = baseDateTime.baseTime,
++                nx = point.nx,
++                ny = point.ny
++            ).enqueue(object : Callback<WeatherEntity> {
++                override fun onResponse(
++                    call: Call<WeatherEntity>,
++                    response: Response<WeatherEntity>
++                ) {
++                    // todo if(response.isSuccessful) 예외처리
++                    val forecastDateTimeMap = mutableMapOf<String, Forecast>()
++                    val forecastList =
++                        response.body()?.response?.body?.items?.forecastEntities.orEmpty()
+ 
+-                for (forecast in forecastList) {
++                    for (forecast in forecastList) {
+ 
+-                    if (forecastDateTimeMap["${forecast.forecastDate}/${forecast.forecastTime}"] == null) {
+-                        forecastDateTimeMap["${forecast.forecastDate}/${forecast.forecastTime}"] =
+-                            Forecast(
+-                                forecastDate = forecast.forecastDate,
+-                                forecastTime = forecast.forecastTime
+-                            )
+-                    }
+-                    forecastDateTimeMap["${forecast.forecastDate}/${forecast.forecastTime}"]?.apply {
+-
+-                        when (forecast.category) {
+-                            Category.POP -> precipitation = forecast.forecastValue.toInt()
+-                            Category.PTY -> precipitationType = transformRainType(forecast)
+-                            Category.SKY -> sky = transformSky(forecast)
+-                            Category.TMP -> temperature = forecast.forecastValue.toDouble()
+-                            else -> {}
++                        if (forecastDateTimeMap["${forecast.forecastDate}/${forecast.forecastTime}"] == null) {
++                            forecastDateTimeMap["${forecast.forecastDate}/${forecast.forecastTime}"] =
++                                Forecast(
++                                    forecastDate = forecast.forecastDate,
++                                    forecastTime = forecast.forecastTime
++                                )
++                        }
++                        forecastDateTimeMap["${forecast.forecastDate}/${forecast.forecastTime}"]?.apply {
++                            when (forecast.category) {
++                                Category.POP -> precipitation = forecast.forecastValue.toInt()
++                                Category.PTY -> precipitationType = transformRainType(forecast)
++                                Category.SKY -> sky = transformSky(forecast)
++                                Category.TMP -> temperature = forecast.forecastValue.toDouble()
++                                else -> {}
+ 
+-                        }
+-                    }
++                            }
++                        }
+ 
+-                }
+-                Log.e("Forecast", forecastDateTimeMap.toString())
++                    }
++                    Log.e("Forecast", forecastDateTimeMap.toString())
+ 
+-            }
++                }
+ 
+-            override fun onFailure(call: Call<WeatherEntity>, t: Throwable) {
+-                t.printStackTrace()
+-            }
++                override fun onFailure(call: Call<WeatherEntity>, t: Throwable) {
++                    t.printStackTrace()
++                }
+ 
+-        })
++            })
+ 
+-    }
++        }
+ 
+-    private fun transformRainType(forecast: ForecastEntity): String {
+-        return when (forecast.forecastValue.toInt()) {
+-            0 -> "없음"
+-            1 -> "비"
+-            2 -> "비/눈"
+-            3 -> "눈"
+-            4 -> "소나기"
+-            else -> ""
+-        }
+     }
+ 
+-    private fun transformSky(forecast: ForecastEntity): String {
+-        return when (forecast.forecastValue.toInt()) {
+-            1 -> "맑음"
+-            3 -> "구름많음"
+-            4 -> "흐림"
+-            else -> ""
+-        }
+-    }
+ }
+\ No newline at end of file
+Index: app/src/main/java/fastcampus/part2/weatherapp/GeoPointConverter.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package fastcampus.part2.weatherapp\n\nimport android.util.Log\nimport kotlin.math.PI\nimport kotlin.math.cos\nimport kotlin.math.log2\nimport kotlin.math.pow\nimport kotlin.math.sin\nimport kotlin.math.tan\n\nclass GeoPointConverter {\n    private val NX = 149\n    private val NY = 253\n\n    private val RE = 6471.00877 // 지도 반경\n    private val GRID = 5.0 // 격자간격(km)\n    private val SLAT1 = 30.0 // 표준위도1\n    private val SLAT2 = 60.0 // 표준위도2\n    private val OLON = 126.0 // 기준점 경도\n    private val OLAT = 38.0 // 기준점 위도\n    private val XO = 210 / GRID // 기준점 X좌표\n    private val YO = 675 / GRID // 기준점 Y좌표\n\n    private val DEGRAD = PI / 180.0\n    private val RADDEG = 180.0 / PI\n\n    private val re = RE / GRID\n    private val slat1 = SLAT1 * DEGRAD\n    private val slat2 = SLAT2 * DEGRAD\n    private val olon = OLON * DEGRAD\n    private val olat = OLAT * DEGRAD\n\n    data class Point(val nx: Int, val ny: Int)\n\n    // 위경도 -> 좌표 변환\n    fun convert(lon: Double, lat: Double): Point{\n\n        var sn = tan(PI * 0.25 + slat2 * 0.5) / tan(PI * 0.25 + slat1 * 0.5)\n        sn = log2(cos(slat1) / cos(slat2)) / log2(sn)\n        var sf = tan(PI * 0.25 + slat1 * 0.5)\n        sf = sf.pow(sn) * cos(slat1) / sn\n        var ro = tan(PI * 0.25 + olat * 0.5)\n        ro = re * sf / ro.pow(sn)\n\n        var ra = tan(PI * 0.25 + lat * DEGRAD * 0.5)\n        ra = re * sf / ra.pow(sn)\n\n        var theta = lon * DEGRAD - olon\n\n        if (theta > PI)\n            theta -= 2 * PI\n        if (theta < -PI)\n            theta += 2 * PI\n\n        theta *= sn\n\n        val nx = ra * sin(theta) + XO + 1.5\n        val ny = ro - ra * cos(theta) + YO + 1.5\n\n        Log.e(\"Converter\", \"$nx $ny\")\n        return Point(nx.toInt(), ny.toInt())\n\n    }\n\n}
+===================================================================
+diff --git a/app/src/main/java/fastcampus/part2/weatherapp/GeoPointConverter.kt b/app/src/main/java/fastcampus/part2/weatherapp/GeoPointConverter.kt
+--- a/app/src/main/java/fastcampus/part2/weatherapp/GeoPointConverter.kt	
++++ b/app/src/main/java/fastcampus/part2/weatherapp/GeoPointConverter.kt	
+@@ -1,23 +1,18 @@
+ package fastcampus.part2.weatherapp
+ 
+ import android.util.Log
+-import kotlin.math.PI
+-import kotlin.math.cos
+-import kotlin.math.log2
+-import kotlin.math.pow
+-import kotlin.math.sin
+-import kotlin.math.tan
++import kotlin.math.*
+ 
+ class GeoPointConverter {
+     private val NX = 149
+     private val NY = 253
+ 
+-    private val RE = 6471.00877 // 지도 반경
+-    private val GRID = 5.0 // 격자간격(km)
+-    private val SLAT1 = 30.0 // 표준위도1
+-    private val SLAT2 = 60.0 // 표준위도2
+-    private val OLON = 126.0 // 기준점 경도
+-    private val OLAT = 38.0 // 기준점 위도
++    private val RE = 6371.00877; // 지도반경
++    private val GRID = 5.0; // 격자간격 (km)
++    private val SLAT1 = 30.0; // 표준위도 1
++    private val SLAT2 = 60.0; // 표준위도 2
++    private val OLON = 126.0; // 기준점 경도
++    private val OLAT = 38.0; // 기준점 위도
+     private val XO = 210 / GRID // 기준점 X좌표
+     private val YO = 675 / GRID // 기준점 Y좌표
+ 
