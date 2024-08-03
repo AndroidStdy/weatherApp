@@ -15,6 +15,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.location.LocationServices
+import fastcampus.part2.weatherapp.databinding.ActivityMainBinding
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -23,7 +24,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
-    val locationPermissionRequest = registerForActivityResult(
+    private lateinit var binding: ActivityMainBinding
+
+    private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         when {
@@ -45,7 +48,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         locationPermissionRequest.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION))
 
@@ -133,6 +137,21 @@ class MainActivity : AppCompatActivity() {
                         }
 
                     }
+
+                    val list = forecastDateTimeMap.values.toMutableList()
+                    list.sortWith{ f1, f2 ->
+                        val f1DateTime = "${f1.forecastDate}${f1.forecastTime}"
+                        val f2DateTime = "${f2.forecastDate}${f2.forecastTime}"
+
+                        return@sortWith f1DateTime.compareTo(f2DateTime)
+                    }
+
+                    val currentForecast = list.first()
+
+                    binding.tvTemperature.text = getString(R.string.temperature_text,currentForecast.temperature)
+                    binding.tvSky.text = currentForecast.weather
+                    binding.tvPrecipitation.text = getString(R.string.precipitation_text, currentForecast.precipitation)
+
                     Log.e("Forecast", forecastDateTimeMap.toString())
                 }
 
