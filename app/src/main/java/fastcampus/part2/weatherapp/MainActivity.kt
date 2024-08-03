@@ -17,7 +17,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-
         val retrofit = Retrofit.Builder()
             .baseUrl("http://apis.data.go.kr/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -25,10 +24,12 @@ class MainActivity : AppCompatActivity() {
 
         val service = retrofit.create(WeatherService::class.java)
 
+        val baseDateTime = BaseDateTime.getBaseDateTime()
+
         service.getVillageForecast(
             serviceKey = "fbK2g297uMEM8V6tRh8OrEcJYGYvS2aK/hLSkVSySexCD0yEVarZgDG7Li6ZbrOy1Wa++Irb+dZHjwnpnSDHBA==",
-            baseDate = "20240803",
-            baseTime = "1400",
+            baseDate = baseDateTime.baseDate,
+            baseTime = baseDateTime.baseTime,
             nx = 55,
             ny = 127
         ).enqueue(object : Callback<WeatherEntity> {
