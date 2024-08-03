@@ -29,7 +29,7 @@ class WeatherAppWidgetProvider: AppWidgetProvider(){
                 context.packageName,
                 R.layout.widget_weather
             ).apply {
-                setOnClickPendingIntent(R.id.tv_test, pendingIntent)
+                setOnClickPendingIntent(R.id.tv_temperature, pendingIntent)
             }
 
             // Tell the AppWidgetManager to perform an update on the current
