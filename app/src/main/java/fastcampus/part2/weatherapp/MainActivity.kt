@@ -3,6 +3,7 @@ package fastcampus.part2.weatherapp
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -23,6 +24,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -89,6 +91,22 @@ class MainActivity : AppCompatActivity() {
         }
         fusedLocationClient.lastLocation.addOnSuccessListener {
 
+            Thread {
+                try {
+                    val addressList = Geocoder(this, Locale.KOREA).getFromLocation(
+                        it.latitude,
+                        it.longitude,
+                        1
+                    )
+                    runOnUiThread {
+                        binding.tvLocation.text = addressList?.get(0)?.thoroughfare.orEmpty()
+                    }
+                }catch (e: Exception){
+                    e.printStackTrace()
+                }
+            }.start()
+
+
             val retrofit = Retrofit.Builder()
                 .baseUrl("http://apis.data.go.kr/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -143,7 +161,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     val list = forecastDateTimeMap.values.toMutableList()
-                    list.sortWith{ f1, f2 ->
+                    list.sortWith { f1, f2 ->
                         val f1DateTime = "${f1.forecastDate}${f1.forecastTime}"
                         val f2DateTime = "${f2.forecastDate}${f2.forecastTime}"
 
@@ -152,14 +170,18 @@ class MainActivity : AppCompatActivity() {
 
                     val currentForecast = list.first()
 
-                    binding.tvTemperature.text = getString(R.string.temperature_text,currentForecast.temperature)
+                    binding.tvTemperature.text =
+                        getString(R.string.temperature_text, currentForecast.temperature)
                     binding.tvSky.text = currentForecast.weather
-                    binding.tvPrecipitation.text = getString(R.string.precipitation_text, currentForecast.precipitation)
+                    binding.tvPrecipitation.text =
+                        getString(R.string.precipitation_text, currentForecast.precipitation)
 
                     binding.childForecastLayout.apply {
 
-                        list.forEachIndexed{ index, forecast ->
-                            if (index == 0){ return@forEachIndexed }
+                        list.forEachIndexed { index, forecast ->
+                            if (index == 0) {
+                                return@forEachIndexed
+                            }
 
                             val itemView = ItemForecastBinding.inflate(layoutInflater)
 
