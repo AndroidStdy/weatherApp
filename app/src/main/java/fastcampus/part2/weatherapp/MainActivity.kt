@@ -116,9 +116,8 @@ class MainActivity : AppCompatActivity() {
 
             val baseDateTime = BaseDateTime.getBaseDateTime()
             val converter = GeoPointConverter()
-            val point = converter.convert(lat = 37.5017, lon = 127.0178)
-            Log.e("convert", "$point")
-            //val point = converter.convert(lat = it.latitude, lon = it.longitude) // lat: 위도, lon: 경도
+//            val point = converter.convert(lat = 37.5017, lon = 127.0178)
+            val point = converter.convert(lat = it.latitude, lon = it.longitude) // lat: 위도, lon: 경도
 
             service.getVillageForecast(
                 serviceKey = "fbK2g297uMEM8V6tRh8OrEcJYGYvS2aK/hLSkVSySexCD0yEVarZgDG7Li6ZbrOy1Wa++Irb+dZHjwnpnSDHBA==",
