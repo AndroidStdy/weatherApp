@@ -1,11 +1,14 @@
 package fastcampus.part2.weatherapp
 
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.widget.RemoteViews
+import androidx.core.content.ContextCompat
 
 class WeatherAppWidgetProvider: AppWidgetProvider(){
     override fun onUpdate(
@@ -18,9 +21,9 @@ class WeatherAppWidgetProvider: AppWidgetProvider(){
         // Perform this loop procedure for each widget that belongs to this provider.
         appWidgetIds.forEach { appWidgetId ->
             // Create an Intent to launch ExampleActivity.
-            val pendingIntent: PendingIntent = Intent(context, MainActivity::class.java)
+            val pendingIntent: PendingIntent = Intent(context, UpdateWeatherService::class.java)
                 .let { intent ->
-                    PendingIntent.getActivity(context,1,intent,PendingIntent.FLAG_IMMUTABLE)
+                    PendingIntent.getForegroundService(context,1,intent,PendingIntent.FLAG_IMMUTABLE)
                 }
 
             // Get the layout for the widget and attach an onClick listener to
@@ -36,5 +39,19 @@ class WeatherAppWidgetProvider: AppWidgetProvider(){
             // widget.
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
+
+        val serviceIntent = Intent(context, UpdateWeatherService::class.java)
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+            try {
+                ContextCompat.startForegroundService(context, serviceIntent)
+            }catch (e: ForegroundServiceStartNotAllowedException){
+                e.printStackTrace()
+            }
+        }else{
+            ContextCompat.startForegroundService(context, serviceIntent)
+        }
+
+
     }
 }
